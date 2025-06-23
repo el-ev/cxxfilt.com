@@ -1,0 +1,31 @@
+{
+  "name": "llvm-symbol-demangler",
+  "version": "1.0.0",
+  "description": "LLVM Symbol Name Demangler Online - A web interface for demangling C++ symbol names using LLVM's c++filt",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "serve": "npx serve -s . -p 8080",
+    "start": "npm run build && npm run serve"
+  },
+  "keywords": [
+    "llvm",
+    "c++",
+    "demangler",
+    "symbols",
+    "wasm",
+    "typescript"
+  ],
+  "author": "Iris Shi",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/emscripten": "^1.40.1",
+    "@types/node": "^24.0.3",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

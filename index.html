@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symbol Name Demangler Online</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Symbol Name Demangler Online</h1>
+            <p>Demangle C++ or Rust symbol names using LLVM's cxxfilt tool</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <label for="mangled-input">Mangled Symbol Name:</label>
+                <textarea id="mangled-input"
+                    placeholder="Enter mangled symbol names here (one per line)&#10;Example: _Z3fooi&#10;_ZN3std6vectorIiSaIiEE9push_backERKi"></textarea>
+                <div class="controls">
+                    <button id="demangle-btn" class="primary-btn">Demangle</button>
+                    <button id="clear-btn" class="secondary-btn">Clear</button>
+                    <button id="example-btn" class="secondary-btn">Load Examples</button>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <label for="demangled-output">Demangled Output:</label>
+                <div class="output-container">
+                    <textarea id="demangled-output" readonly
+                        placeholder="Demangled symbols will appear here..."></textarea>
+                    <button id="copy-btn" class="copy-btn" title="Copy to clipboard">📋</button>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div id="status" class="status"></div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="info">
+                <h3>About</h3>
+                <p>This tool uses LLVM's cxxfilt utility compiled to WebAssembly to demangle C++ or Rust symbol names
+                    directly in your browser. No data is sent to any server.</p>
+
+                <h3>Usage</h3>
+                <ul>
+                    <li>Enter mangled symbol names in the input field (one per line)</li>
+                    <li>Click "Demangle" to process the symbols</li>
+                    <li>Use "Load Examples" to see sample mangled names</li>
+                </ul>
+
+                <h3>Examples of Mangled Symbols</h3>
+                <ul>
+                    <li><code>_Z3fooi</code> → <code>foo(int)</code></li>
+                    <li><code>_ZN3std6vectorIiSaIiEE9push_backERKi</code> →
+                        <code>std::vector&lt;int, std::allocator&lt;int&gt;&gt;::push_back(int const&amp;)</code>
+                    </li>
+                    <li><code>_ZNK6MyBaseD2Ev</code> → <code>MyBase::~MyBase() const</code></li>
+                    <li><code>_RNvMsr_NtCs3ssYzQotkvD_3std4pathNtB5_7PathBuf3newCs15kBYyAo9fc_7mycrate
+                        </code> → <code>&lt;std::path::PathBuf&gt;::new</code></li>
+                </ul>
+            </div>
+        </footer>
+    </div>
+    <script type="module" src="./dist/index.js"></script>
+</body>
+
+</html>

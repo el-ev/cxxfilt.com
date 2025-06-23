@@ -1,0 +1,262 @@
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary-color: #64748b;
+    --secondary-hover: #475569;
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --warning-color: #f59e0b;
+    --background-color: #f8fafc;
+    --surface-color: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background-color: #f0f2f5;
+    color: #1c1e21;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    border-bottom: 1px solid #dddfe2;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    margin: 0;
+}
+
+p {
+    font-size: 16px;
+    color: #606770;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-section, .output-section {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 10px;
+    border: 1px solid #dddfe2;
+    border-radius: 6px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+}
+
+textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+#demangled-output {
+    background-color: #f8fafc;
+    color: var(--text-primary);
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.primary-btn {
+    background-color: #1877f2;
+    color: #fff;
+}
+
+.primary-btn:hover {
+    background-color: #166fe5;
+}
+
+.secondary-btn {
+    background-color: #e4e6eb;
+    color: #050505;
+}
+
+.secondary-btn:hover {
+    background-color: #d8dadf;
+}
+
+button:disabled {
+    background-color: #d8dadf;
+    color: #bcc0c4;
+    cursor: not-allowed;
+}
+
+.output-container {
+    position: relative;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #f5f6f7;
+    border: 1px solid #ccd0d5;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px 8px;
+}
+
+.status-section {
+    min-height: 20px;
+}
+
+.status {
+    font-style: italic;
+    color: #606770;
+}
+
+.status.error {
+    color: #fa383e;
+    font-weight: bold;
+}
+
+footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #dddfe2;
+    font-size: 14px;
+    color: #606770;
+}
+
+footer h3 {
+    font-size: 16px;
+    margin-top: 0;
+}
+
+footer ul {
+    padding-left: 20px;
+}
+
+footer code {
+    background-color: #e4e6eb;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Loading animation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    .input-section,
+    .output-section,
+    footer {
+        padding: 20px;
+    }
+
+    .controls {
+        flex-direction: column;
+    }
+
+    .controls button {
+        width: 100%;
+    }
+
+    .copy-btn {
+        position: static;
+        margin-top: 10px;
+        width: 100%;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #0f172a;
+        --surface-color: #1e293b;
+        --border-color: #334155;
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+    }
+
+    textarea {
+        background-color: var(--surface-color);
+        color: var(--text-primary);
+    }
+
+    #demangled-output {
+        background-color: #0f172a;
+    }
+}
