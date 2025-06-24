@@ -1,114 +1,216 @@
 import Cxxfilt, { CxxfiltModule } from '../wasm/llvm-cxxfilt.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const getElement = <T extends HTMLElement>(id: string): T => {
-        const el = document.getElementById(id);
-        if (!el) throw new Error(`Element with id ${id} not found`);
-        return el as T;
-    };
+const getElement = <T extends HTMLElement>(id: string): T => {
+    const el = document.getElementById(id);
+    if (!el) throw new Error(`Element with id ${id} not found`);
+    return el as T;
+};
 
-    const mangledInput = getElement<HTMLTextAreaElement>('mangled-input');
-    const demangledOutput = getElement<HTMLTextAreaElement>('demangled-output');
-    const demangleBtn = getElement<HTMLButtonElement>('demangle-btn');
-    const clearBtn = getElement<HTMLButtonElement>('clear-btn');
-    const exampleBtn = getElement<HTMLButtonElement>('example-btn');
-    const copyBtn = getElement<HTMLButtonElement>('copy-btn');
-    const statusDiv = getElement<HTMLDivElement>('status');
+class ThemeManager {
+    private themeToggle: HTMLButtonElement;
 
-    let demangleHadError = false;
+    constructor(themeToggle: HTMLButtonElement) {
+        this.themeToggle = themeToggle;
+        this.initialize();
+    }
 
-    const setStatus = (message: string, isError: boolean = false) => {
-        statusDiv.textContent = message;
-        statusDiv.className = isError ? 'status error' : 'status';
-    };
+    private initialize(): void {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+        
+        this.setTheme(theme);
+        this.updateThemeIcon(theme);
+        this.themeToggle.addEventListener('click', () => this.toggleTheme());
+    }
 
-    const initializeWasm = async () => {
+    private setTheme(theme: string): void {
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+        localStorage.setItem('theme', theme);
+    }
+
+    private updateThemeIcon(theme: string): void {
+        const themeIcon = this.themeToggle.querySelector('.theme-icon');
+        if (themeIcon) {
+            themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    private toggleTheme(): void {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        this.setTheme(newTheme);
+        this.updateThemeIcon(newTheme);
+    }
+}
+
+class StatusManager {
+    private statusDiv: HTMLDivElement;
+
+    constructor(statusDiv: HTMLDivElement) {
+        this.statusDiv = statusDiv;
+    }
+
+    setStatus(message: string, isError: boolean = false): void {
+        this.statusDiv.textContent = message;
+        this.statusDiv.className = isError ? 'status error' : 'status';
+    }
+
+    clearStatus(): void {
+        this.setStatus('');
+    }
+}
+
+class DemanglerService {
+    private statusManager: StatusManager;
+    private demangledOutput: HTMLTextAreaElement;
+    private demangleHadError = false;
+
+    constructor(statusManager: StatusManager, demangledOutput: HTMLTextAreaElement) {
+        this.statusManager = statusManager;
+        this.demangledOutput = demangledOutput;
+    }
+
+    private async initializeWasm(): Promise<CxxfiltModule | null> {
         try {
-            setStatus('Initializing wasm module...');
-            demangleBtn.disabled = true;
-            var Module = {
+            this.statusManager.setStatus('Initializing wasm module...');
+            const Module = {
                 noInitialRun: true,
                 print: (text: string) => {
-                    demangledOutput.value += text + '\n';
+                    this.demangledOutput.value += text + '\n';
                 },
                 printErr: (text: string) => {
-                    demangledOutput.value += text + '\n';
-                    demangleHadError = true;
+                    this.demangledOutput.value += text + '\n';
+                    this.demangleHadError = true;
                 },
             };
-            var cxxfiltModule = await Cxxfilt(Module);
-            setStatus('Wasm module loaded successfully.');
-            demangleBtn.disabled = false;
+            const cxxfiltModule = await Cxxfilt(Module);
+            this.statusManager.setStatus('Wasm module loaded successfully.');
             return cxxfiltModule as CxxfiltModule;
         } catch (error) {
             console.error('Error loading wasm module:', error);
-            setStatus('Failed to load wasm module. See console for details.', true);
+            this.statusManager.setStatus('Failed to load wasm module. See console for details.', true);
             return null;
         }
-    };
+    }
 
-    const demangleSymbols = async () => {
-        var cxxfiltModule = await initializeWasm();
+    async demangle(input: string, demangleBtn: HTMLButtonElement): Promise<void> {
+        const cxxfiltModule = await this.initializeWasm();
         if (!cxxfiltModule) {
             return;
         }
 
-        if (mangledInput.value.trim() === '') {
-            setStatus('Please enter symbols to demangle.', true);
+        if (input.trim() === '') {
+            this.statusManager.setStatus('Please enter symbols to demangle.', true);
             return;
         }
-        demangledOutput.value = '';
-        demangleHadError = false;
-        const mangledSymbols = mangledInput.value.trim().split('\n');
+
+        this.demangledOutput.value = '';
+        this.demangleHadError = false;
+        const mangledSymbols = input.trim().split('\n');
 
         try {
-            setStatus('Demangling...');
+            this.statusManager.setStatus('Demangling...');
             demangleBtn.disabled = true;
-            await cxxfiltModule?.callMain(mangledSymbols);
-            if (demangleHadError) {
-                setStatus('Demangling completed, but some symbols could not be demangled.', true);
+            await cxxfiltModule.callMain(mangledSymbols);
+            
+            if (this.demangleHadError) {
+                this.statusManager.setStatus('Demangling completed, but some symbols could not be demangled.', true);
             } else {
-                setStatus('Demangling completed successfully.');
+                this.statusManager.setStatus('Demangling completed successfully.');
             }
         } catch (error) {
             console.error('Error during demangling:', error);
-            setStatus('An error occurred during demangling.', true);
+            this.statusManager.setStatus('An error occurred during demangling.', true);
         } finally {
             demangleBtn.disabled = false;
         }
+    }
+}
+
+class DemanglerApp {
+    private elements: {
+        mangledInput: HTMLTextAreaElement;
+        demangledOutput: HTMLTextAreaElement;
+        demangleBtn: HTMLButtonElement;
+        clearBtn: HTMLButtonElement;
+        exampleBtn: HTMLButtonElement;
+        copyBtn: HTMLButtonElement;
+        themeToggle: HTMLButtonElement;
+        statusDiv: HTMLDivElement;
     };
 
-    const clearFields = () => {
-        mangledInput.value = '';
-        demangledOutput.value = '';
-        setStatus('');
-    };
+    private statusManager: StatusManager;
+    private demanglerService: DemanglerService;
+    private themeManager: ThemeManager;
 
-    const loadExamples = () => {
+    constructor() {
+        this.elements = {
+            mangledInput: getElement<HTMLTextAreaElement>('mangled-input'),
+            demangledOutput: getElement<HTMLTextAreaElement>('demangled-output'),
+            demangleBtn: getElement<HTMLButtonElement>('demangle-btn'),
+            clearBtn: getElement<HTMLButtonElement>('clear-btn'),
+            exampleBtn: getElement<HTMLButtonElement>('example-btn'),
+            copyBtn: getElement<HTMLButtonElement>('copy-btn'),
+            themeToggle: getElement<HTMLButtonElement>('theme-toggle'),
+            statusDiv: getElement<HTMLDivElement>('status')
+        };
+
+        this.statusManager = new StatusManager(this.elements.statusDiv);
+        this.demanglerService = new DemanglerService(this.statusManager, this.elements.demangledOutput);
+        this.themeManager = new ThemeManager(this.elements.themeToggle);
+
+        this.bindEvents();
+    }
+
+    private bindEvents(): void {
+        this.elements.demangleBtn.addEventListener('click', () => this.handleDemangle());
+        this.elements.clearBtn.addEventListener('click', () => this.handleClear());
+        this.elements.exampleBtn.addEventListener('click', () => this.handleLoadExamples());
+        this.elements.copyBtn.addEventListener('click', () => this.handleCopyToClipboard());
+    }
+
+    private async handleDemangle(): Promise<void> {
+        await this.demanglerService.demangle(this.elements.mangledInput.value, this.elements.demangleBtn);
+    }
+
+    private handleClear(): void {
+        this.elements.mangledInput.value = '';
+        this.elements.demangledOutput.value = '';
+        this.statusManager.clearStatus();
+    }
+
+    private handleLoadExamples(): void {
         const examples = [
             '_Z3fooi',
             '_ZN3std6vectorIiSaIiEE9push_backERKi',
             '_ZNK6MyBaseD2Ev',
             '_RNvMsr_NtCs3ssYzQotkvD_3std4pathNtB5_7PathBuf3newCs15kBYyAo9fc_7mycrate'
         ];
-        mangledInput.value = examples.join('\n');
-    };
+        this.elements.mangledInput.value = examples.join('\n');
+    }
 
-    const copyToClipboard = async () => {
-        if (!demangledOutput.value) {
+    private async handleCopyToClipboard(): Promise<void> {
+        if (!this.elements.demangledOutput.value) {
             return;
         }
+        
         try {
-            await navigator.clipboard.writeText(demangledOutput.value);
-            setStatus('Copied to clipboard!');
-            setTimeout(() => setStatus(''), 2000);
+            await navigator.clipboard.writeText(this.elements.demangledOutput.value);
+            this.statusManager.setStatus('Copied to clipboard!');
+            setTimeout(() => this.statusManager.clearStatus(), 2000);
         } catch (err) {
             console.error('Failed to copy text: ', err);
         }
-    };
+    }
+}
 
-    demangleBtn.addEventListener('click', demangleSymbols);
-    clearBtn.addEventListener('click', clearFields);
-    exampleBtn.addEventListener('click', loadExamples);
-    copyBtn.addEventListener('click', copyToClipboard);
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    new DemanglerApp();
 });
