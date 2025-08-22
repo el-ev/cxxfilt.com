@@ -158,13 +158,21 @@ label {
     margin-bottom: 8px;
 }
 
+@font-face {
+    src: url(fonts/regular.woff2) format("woff2");
+    font-family: ml;
+    font-weight: 100 900;
+    font-style: normal;
+    unicode-range: U+0020-007F;
+}
+
 textarea {
     width: 100%;
     min-height: 150px;
     padding: 10px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    font-family: "Courier New", Courier, monospace;
+    font-family: monolisa, "Courier New", Courier, monospace;
     font-size: 14px;
     resize: vertical;
     box-sizing: border-box;
@@ -284,11 +292,12 @@ footer ul {
 footer code {
     background-color: var(--background-color);
     color: var(--text-primary);
+    font-family: monolisa, "Courier New", Courier, monospace;
     padding: 2px 4px;
     border-radius: 3px;
+    white-space: nowrap;
 }
 
-/* Loading animation */
 @keyframes spin {
     to {
         transform: rotate(360deg);
@@ -306,7 +315,6 @@ footer code {
     margin-right: 8px;
 }
 
-/* Responsive design */
 @media (max-width: 767px) {
     body {
         padding: 5px;

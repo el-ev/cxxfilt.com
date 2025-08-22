@@ -117,6 +117,7 @@ class DemanglerService {
         try {
             this.statusManager.setStatus('Demangling...');
             demangleBtn.disabled = true;
+            // FIXME: main could only be called once
             await cxxfiltModule.callMain(mangledSymbols);
             
             if (this.demangleHadError) {
