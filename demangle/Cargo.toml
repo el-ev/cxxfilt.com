@@ -14,6 +14,7 @@ default = []
 wasm-bindgen = "0.2.84"
 rustc-demangle = "0.1.26"
 msvc-demangler = "0.11.0"
+cpp_demangle = "0.5.1"
 
 [build-dependencies]
 cc = "1.0"

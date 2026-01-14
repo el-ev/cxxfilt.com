@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
 use std::ffi::CStr;
+use wasm_bindgen::prelude::*;
 
 extern "C" {
     fn c_itanium_demangle(mangled_name: *const i8, length: usize) -> *mut i8;
@@ -30,7 +30,9 @@ pub fn demangle(symbol: &str) -> Option<String> {
     if (1..=4).contains(&symbol.chars().take_while(|&c| c == '_').count())
         && symbol.chars().find(|&c| c != '_') == Some('Z')
     {
-        return demangle_itanium(symbol).or(demangle_rust(symbol));
+        return demangle_rust(symbol)
+            .or(demangle_itanium_llvm(symbol))
+            .or(demangle_itanium_cpp_demangle(symbol));
     }
 
     // if the symbol start with "_R" or "__R" we interpret it as a v0-style Rust symbol
@@ -40,17 +42,28 @@ pub fn demangle(symbol: &str) -> Option<String> {
     None
 }
 
-fn demangle_itanium(symbol: &str) -> Option<String> {
+fn demangle_itanium_llvm(symbol: &str) -> Option<String> {
+    let llvm_demangled;
     unsafe {
         let ptr = c_itanium_demangle(symbol.as_ptr() as *const i8, symbol.len());
         if ptr.is_null() {
             return None;
         }
         let c_str = CStr::from_ptr(ptr);
-        let s = c_str.to_string_lossy().into_owned();
+        llvm_demangled = c_str.to_string_lossy().into_owned();
         c_free_demangled(ptr);
-        Some(s)
     }
+    if llvm_demangled == symbol {
+        None
+    } else {
+        Some(llvm_demangled)
+    }
+}
+
+fn demangle_itanium_cpp_demangle(symbol: &str) -> Option<String> {
+    cpp_demangle::Symbol::new(symbol)
+        .ok()
+        .and_then(|s| s.demangle().ok())
 }
 
 fn demangle_rust(symbol: &str) -> Option<String> {
