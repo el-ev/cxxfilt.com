@@ -1,0 +1,22 @@
+[package]
+name = "demangle"
+version = "0.1.0"
+authors = ["Iris Shi <0.0@owo.li>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+
+[dependencies]
+wasm-bindgen = "0.2.84"
+rustc-demangle = "0.1.26"
+msvc-demangler = "0.11.0"
+
+[build-dependencies]
+cc = "1.0"
+
+[profile.release]
+opt-level = "s"
