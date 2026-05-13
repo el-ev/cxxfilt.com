@@ -32,11 +32,21 @@
                         <option value="custom">Custom…</option>
                     </select>
                     <div id="customTargetWrapper" class="target-custom" style="display: none;">
-                        <input id="customTargetInput" type="text" placeholder="e.g., wasm32-unknown-unknown" aria-label="Custom target triple" />
+                        <input id="customTargetInput" type="text" placeholder="e.g., wasm32-unknown-unknown"
+                            aria-label="Custom target triple" autocomplete="off" autocapitalize="off"
+                            spellcheck="false" pattern="[A-Za-z0-9._-]+" />
+                        <small id="customTargetHint" class="field-hint">Letters, digits, dots, underscores, dashes — no spaces.</small>
                     </div>
                     <button id="analyzeBtn" class="primary-btn">Analyze Layout</button>
                     <span id="wasmStatus" class="status-chip status-warning" aria-live="polite">WASM not loaded</span>
                     <span id="loading" class="spinner" style="display: none;">Processing...</span>
+                </div>
+                <div class="toolbar toolbar-secondary">
+                    <label for="extraFlagsInput">Extra Flags:</label>
+                    <input id="extraFlagsInput" type="text" class="extra-flags"
+                        placeholder="e.g., -std=c++20 -fno-exceptions -Wno-unused"
+                        aria-describedby="extraFlagsHint" autocomplete="off" spellcheck="false" />
+                    <small id="extraFlagsHint" class="field-hint">Space-separated, no quoting.</small>
                 </div>
                 <div class="editor-wrapper">
                     <textarea id="codeEditor" spellcheck="false">
@@ -91,12 +101,12 @@ class H {
             </div>
         </main>
 
-        <div id="infoPanel" class="info-panel" style="display: none;">
+        <div id="infoPanel" class="info-panel" role="status" aria-live="polite">
             <div class="info-header">
-                <h3>Info</h3>
-                <button id="clearInfo" class="icon-btn">×</button>
+                <h3>Diagnostics</h3>
+                <button id="clearInfo" class="icon-btn" aria-label="Close diagnostics">×</button>
             </div>
-            <div id="infoContent"></div>
+            <pre id="infoContent"></pre>
         </div>
 
         <footer>

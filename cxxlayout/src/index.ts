@@ -37,6 +37,8 @@ class CxxLayoutVisualizer {
     private targetSelect: HTMLSelectElement;
     private targetCustomWrapper: HTMLElement;
     private targetCustomInput: HTMLInputElement;
+    private customTargetHint: HTMLElement;
+    private extraFlagsInput: HTMLInputElement;
     private wasmStatus: HTMLElement;
     private loading: HTMLElement;
     private error: HTMLElement;
@@ -54,6 +56,8 @@ class CxxLayoutVisualizer {
         this.targetSelect = document.getElementById('targetSelect') as HTMLSelectElement;
         this.targetCustomWrapper = document.getElementById('customTargetWrapper') as HTMLElement;
         this.targetCustomInput = document.getElementById('customTargetInput') as HTMLInputElement;
+        this.customTargetHint = document.getElementById('customTargetHint') as HTMLElement;
+        this.extraFlagsInput = document.getElementById('extraFlagsInput') as HTMLInputElement;
         this.wasmStatus = document.getElementById('wasmStatus') as HTMLElement;
         this.loading = document.getElementById('loading') as HTMLElement;
         this.error = document.getElementById('error') as HTMLElement;
@@ -71,9 +75,35 @@ class CxxLayoutVisualizer {
     private initializeEventListeners(): void {
         this.analyzeBtn.addEventListener('click', () => this.analyzeCode());
         this.targetSelect.addEventListener('change', () => this.syncCustomTargetVisibility());
+        this.targetCustomInput.addEventListener('input', () => this.validateCustomTarget(false));
         this.clearInfoBtn.addEventListener('click', () => {
             this.hideInfo();
         });
+    }
+
+    private static readonly TARGET_TRIPLE_RE = /^[A-Za-z0-9._-]+$/;
+
+    private validateCustomTarget(showEmpty: boolean): boolean {
+        const raw = this.targetCustomInput.value;
+        const trimmed = raw.trim();
+        const empty = trimmed.length === 0;
+        const valid = !empty && CxxLayoutVisualizer.TARGET_TRIPLE_RE.test(raw);
+
+        const showError = !valid && (showEmpty || !empty);
+        this.targetCustomInput.classList.toggle('is-invalid', showError);
+        this.customTargetHint.classList.toggle('is-error', showError);
+        if (showError) {
+            this.customTargetHint.textContent = empty
+                ? 'Target triple is required.'
+                : 'Invalid characters — only letters, digits, dots, underscores, and dashes.';
+        } else {
+            this.customTargetHint.textContent = 'Letters, digits, dots, underscores, dashes — no spaces.';
+        }
+        return valid;
+    }
+
+    private static splitFlags(input: string): string[] {
+        return input.split(/\s+/).filter(Boolean);
     }
     private async loadModule(): Promise<void> {
         if (this.module) return;
@@ -117,12 +147,23 @@ class CxxLayoutVisualizer {
 
     private showInfo(message: string): void {
         this.infoContent.textContent = message;
-        this.infoPanel.style.display = 'flex';
+        this.infoPanel.classList.add('is-visible');
     }
 
     private hideInfo(): void {
-        this.infoPanel.style.display = 'none';
+        this.infoPanel.classList.remove('is-visible');
         this.infoContent.textContent = '';
+    }
+
+    private clearResults(): void {
+        this.records = [];
+        this.layouts.clear();
+        this.selectedRecordIds.clear();
+        const items = this.recordList.querySelector('.record-items') as HTMLElement | null;
+        if (items) items.innerHTML = '';
+        const status = this.recordList.querySelector('.record-status') as HTMLElement | null;
+        if (status) status.remove();
+        this.layoutVisualization.innerHTML = '';
     }
 
     private async analyzeCode(): Promise<void> {
@@ -148,18 +189,21 @@ class CxxLayoutVisualizer {
         this.error.style.display = 'none';
         this.hideInfo();
         this.stderr = '';
+        this.clearResults();
 
         try {
-            const targetValue = this.targetSelect.value === 'custom'
+            const isCustom = this.targetSelect.value === 'custom';
+            if (isCustom && !this.validateCustomTarget(true)) {
+                this.showError('Invalid target triple.');
+                this.targetCustomInput.focus();
+                return;
+            }
+            const targetValue = isCustom
                 ? this.targetCustomInput.value.trim()
                 : this.targetSelect.value;
 
-            if (!targetValue) {
-                this.showError('Please enter a target triple.');
-                return;
-            }
-
-            const args = '--target=' + targetValue;
+            const extra = CxxLayoutVisualizer.splitFlags(this.extraFlagsInput.value);
+            const args = ['--target=' + targetValue, ...extra].join(' ');
             const encoder = new TextEncoder();
 
             const argsEncoded = encoder.encode(args);
@@ -180,11 +224,17 @@ class CxxLayoutVisualizer {
             this.records = JSON.parse(resultJson) as RecordInfo[];
 
             if (this.records.length === 0) {
-                this.showError('No records found. Make sure your code contains struct or class definitions.');
+                const diag = this.stderr.trim();
+                if (diag) {
+                    this.showError('Clang reported errors — see diagnostics.');
+                    this.showInfo(diag);
+                } else {
+                    this.showError('No records found. Make sure your code contains struct or class definitions.');
+                }
+                try { this.module._cleanup(); } catch { /* best effort */ }
                 return;
             }
 
-            this.layouts.clear();
             for (const record of this.records) {
                 try {
                     let recordId: any = record.id;
