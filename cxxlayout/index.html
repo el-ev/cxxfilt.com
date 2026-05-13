@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ Record Layout Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-main">
+                <h1>C++ Record Layout Visualizer</h1>
+                <p class="subtitle">Analyze memory layout, padding, and alignment of C++ structs/classes. Powered by Clang LibTooling.</p>
+            </div>
+            <button id="theme-toggle" class="theme-toggle" title="Toggle dark/light mode" aria-label="Toggle theme"></button>
+        </header>
+
+        <main>
+            <div class="editor-pane">
+                <div class="toolbar">
+                    <label for="targetSelect">Target Triple:</label>
+                    <select id="targetSelect">
+                        <option value="x86_64-pc-linux-gnu">x86_64 Linux (GNU)</option>
+                        <option value="x86_64-pc-windows-msvc">x86_64 Windows (MSVC)</option>
+                        <option value="apple-arm64-darwin">ARM64 macOS</option>
+                        <option value="i686-pc-windows-msvc">x86 Windows (MSVC)</option>
+                        <option value="custom">Custom…</option>
+                    </select>
+                    <div id="customTargetWrapper" class="target-custom" style="display: none;">
+                        <input id="customTargetInput" type="text" placeholder="e.g., wasm32-unknown-unknown" aria-label="Custom target triple" />
+                    </div>
+                    <button id="analyzeBtn" class="primary-btn">Analyze Layout</button>
+                    <span id="wasmStatus" class="status-chip status-warning" aria-live="polite">WASM not loaded</span>
+                    <span id="loading" class="spinner" style="display: none;">Processing...</span>
+                </div>
+                <div class="editor-wrapper">
+                    <textarea id="codeEditor" spellcheck="false">
+struct A {
+    char c;
+    double d;
+};
+
+struct B {
+    A a;
+    int i;
+};
+
+struct C {
+    virtual void f();
+};
+
+struct D: public B, public C {
+    float f;
+};
+
+struct E {
+    unsigned u;
+    virtual void g();
+};
+
+struct F: public virtual C, public virtual E {
+    int x : 4;
+    unsigned y : 27;
+};
+
+class G {
+    char c;
+} __attribute__((__aligned__(16)));
+
+class H {
+    double d;
+    char c;
+} __attribute__((__packed__));
+</textarea>
+                </div>
+                <div id="error" class="error-banner" style="display: none;"></div>
+            </div>
+
+            <div class="results-pane">
+                <div id="recordList" class="record-list">
+                    <div class="record-items"></div>
+                </div>
+                <div class="visualization-container">
+                    <div id="layoutVisualization"></div>
+                </div>
+            </div>
+        </main>
+
+        <div id="infoPanel" class="info-panel" style="display: none;">
+            <div class="info-header">
+                <h3>Info</h3>
+                <button id="clearInfo" class="icon-btn">×</button>
+            </div>
+            <div id="infoContent"></div>
+        </div>
+
+        <footer>
+            <div class="site-footer">
+                <p>2026 Iris Shi <a href="https://owo.li" target="_blank" rel="noopener noreferrer">owo.li</a>.</p>
+                <p><a href="/" style="text-decoration:none; display: inline-block;">C++ Symbol Demangler</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="dist/index.js"></script>
+</body>
+
+</html>

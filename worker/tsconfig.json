@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["es2020", "webworker"],
+    "types": ["@cloudflare/workers-types"],
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["src/**/*", "src/types.d.ts"]
+}

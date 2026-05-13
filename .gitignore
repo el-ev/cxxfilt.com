@@ -1,5 +1,23 @@
+# Node
+node_modules/
 package-lock.json
-node_modules
-.wrangler
-cxxfilt.com/public/wasm
-cxxfilt.com/src/wasm
+
+# Build outputs
+dist/
+.wrangler/
+
+# Generated WASM artifacts
+cxxfilt/wasm/
+cxxfilt/src/wasm/
+worker/src/wasm/
+worker/public/
+
+cxxfilt.com/
+
+# Rust / wasm-pack
+demangle/target/
+demangle/pkg/
+demangle/Cargo.lock
+demangle/wasm-pack.log
+**/*.rs.bk
+.cargo/

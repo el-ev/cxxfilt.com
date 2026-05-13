@@ -1,0 +1,16 @@
+name = "cxxfilt-worker"
+main = "src/index.ts"
+compatibility_date = "2023-10-25"
+minify = true
+workers_dev = false
+
+[[routes]]
+pattern = "cxxfilt.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.cxxfilt.com"
+custom_domain = true
+
+[site]
+bucket = "./public"

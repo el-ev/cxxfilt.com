@@ -30,9 +30,7 @@ pub fn demangle(symbol: &str) -> Option<String> {
     if (1..=4).contains(&symbol.chars().take_while(|&c| c == '_').count())
         && symbol.chars().find(|&c| c != '_') == Some('Z')
     {
-        return demangle_rust(symbol)
-            .or(demangle_itanium_llvm(symbol))
-            .or(demangle_itanium_cpp_demangle(symbol));
+        return demangle_rust(symbol).or(demangle_itanium_llvm(symbol));
     }
 
     // if the symbol start with "_R" or "__R" we interpret it as a v0-style Rust symbol
@@ -58,12 +56,6 @@ fn demangle_itanium_llvm(symbol: &str) -> Option<String> {
     } else {
         Some(llvm_demangled)
     }
-}
-
-fn demangle_itanium_cpp_demangle(symbol: &str) -> Option<String> {
-    cpp_demangle::Symbol::new(symbol)
-        .ok()
-        .and_then(|s| s.demangle().ok())
 }
 
 fn demangle_rust(symbol: &str) -> Option<String> {

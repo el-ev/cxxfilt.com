@@ -1,0 +1,26 @@
+{
+  "name": "cxxfilt-monorepo",
+  "version": "1.0.0",
+  "description": "C++/Rust symbol demangler and record layout visualizer",
+  "private": true,
+  "workspaces": [
+    "cxxfilt",
+    "cxxlayout",
+    "worker"
+  ],
+  "scripts": {
+    "build": "./build.sh",
+    "build:cxxfilt": "npm run build -w cxxfilt-web",
+    "build:cxxlayout": "npm run build -w cxxlayout",
+    "build:worker": "npm run build -w cxxfilt-worker",
+    "deploy": "npm run deploy -w cxxfilt-worker",
+    "typecheck": "npm run -ws --if-present typecheck"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2",
+    "typescript": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

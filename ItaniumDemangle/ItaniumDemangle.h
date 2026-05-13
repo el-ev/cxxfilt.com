@@ -6144,6 +6144,7 @@ Node *AbstractManglingParser<Derived, Alloc>::parseTemplateArg() {
       return nullptr;
     return Arg;
   }
+  case 'I':
   case 'J': {
     ++First;
     size_t ArgsBegin = Names.size();
@@ -6192,6 +6193,11 @@ Node *
 AbstractManglingParser<Derived, Alloc>::parseTemplateArgs(bool TagTemplates) {
   if (!consumeIf('I'))
     return nullptr;
+
+  // Subtypes within template args are complete, so they can always parse their
+  // own template args (even when the outer conversion-operator context has
+  // TryToParseTemplateArgs=false to avoid consuming the encoding's args).
+  ScopedOverride<bool> SaveTryToParseTemplateArgs(TryToParseTemplateArgs, true);
 
   // <template-params> refer to the innermost <template-args>. Clear out any
   // outer args that we may have inserted into TemplateParams.
