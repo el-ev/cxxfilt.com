@@ -50,14 +50,14 @@ using FieldInfoPtr = std::unique_ptr<FieldInfo>;
 
 class FieldInfo {
 public:
-  bool isValid;
-  FieldType fieldType;
+  bool isValid = false;
+  FieldType fieldType = FieldType::Simple;
   std::string name;
   std::string type;
-  uint64_t offset; // in bits
+  uint64_t offset = 0; // in bits
   clang::CharUnits size;
   clang::CharUnits align;
-  uint64_t bitWidth; // for bitfields
+  uint64_t bitWidth = 0; // for bitfields
   llvm::SmallVector<FieldInfoPtr> subFields;
 };
 

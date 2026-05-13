@@ -6,7 +6,6 @@
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Signals.h"
 #include <clang/AST/CharUnits.h>
 #include <memory>
 
@@ -134,10 +133,14 @@ static FieldInfoPtr analyzeRecord(const clang::ASTContext &Ctx,
     const clang::CXXRecordDecl *BaseDecl = Base.getType()->getAsCXXRecordDecl();
     if (Base.isVirtual())
       continue; // VBase isn't here
+    if (!BaseDecl)
+      continue;
     FieldInfoPtr BaseInfo = analyzeRecord(Ctx, BaseDecl);
     BaseInfo->fieldType = (BaseDecl == primaryBase) ? FieldType::NVPrimaryBase
                                                     : FieldType::NVBase;
     BaseInfo->offset = Layout.getBaseClassOffset(BaseDecl).getQuantity() * 8;
+    BaseInfo->size =
+        Ctx.getASTRecordLayout(BaseDecl).getNonVirtualSize();
     Info->isValid &= BaseInfo->isValid;
     Bases.push_back(std::move(BaseInfo));
   }
@@ -200,19 +203,24 @@ static FieldInfoPtr analyzeRecord(const clang::ASTContext &Ctx,
   for (const auto &VBase : RD->vbases()) {
     const clang::CXXRecordDecl *BaseDecl =
         VBase.getType()->getAsCXXRecordDecl();
+    if (!BaseDecl)
+      continue;
     clang::CharUnits Offset = Layout.getVBaseClassOffset(BaseDecl);
 
     FieldInfoPtr VBaseInfo = analyzeRecord(Ctx, BaseDecl);
     VBaseInfo->fieldType =
         (BaseDecl == primaryBase) ? FieldType::VPrimaryBase : FieldType::VBase;
     VBaseInfo->offset = Offset.getQuantity() * 8;
+    VBaseInfo->size =
+        Ctx.getASTRecordLayout(BaseDecl).getNonVirtualSize();
     Info->isValid &= VBaseInfo->isValid;
     Info->subFields.push_back(std::move(VBaseInfo));
   }
 
-  llvm::sort(Info->subFields, [](const FieldInfoPtr &A, const FieldInfoPtr &B) {
-    return A->offset < B->offset;
-  });
+  llvm::stable_sort(Info->subFields,
+                    [](const FieldInfoPtr &A, const FieldInfoPtr &B) {
+                      return A->offset < B->offset;
+                    });
 
   return Info;
 }
@@ -279,7 +287,7 @@ const char *EMSCRIPTEN_KEEPALIVE getRecordList() {
     if (!first)
       RecordList.push_back(',');
     RecordList.append("{\"id\":\"");
-    RecordList.append(llvm::utostr(R.first));
+    RecordList.append(llvm::itostr(R.first));
     RecordList.append("\",\"name\":\"");
     std::string Escaped;
     {
@@ -297,14 +305,15 @@ const char *EMSCRIPTEN_KEEPALIVE getRecordList() {
   return dupJson(RecordList);
 }
 
-void EMSCRIPTEN_KEEPALIVE analyzeSource(const char *source) {
+int EMSCRIPTEN_KEEPALIVE analyzeSource(const char *source) {
   auto &Ctx = cxxlayout::getContext();
   std::string localArgs;
   Ctx.recordList.clear();
   Ctx.records.clear();
   localArgs = Ctx.args;
-  runToolOnCodeWithArgs(std::make_unique<Action>(), source,
-                        splitArgs(localArgs), "input.cpp");
+  bool Ok = runToolOnCodeWithArgs(std::make_unique<Action>(), source,
+                                  splitArgs(localArgs), "input.cpp");
+  return Ok ? 1 : 0;
 }
 
 const char *EMSCRIPTEN_KEEPALIVE getLayoutForRecord(int64_t id) {
@@ -318,10 +327,9 @@ const char *EMSCRIPTEN_KEEPALIVE getLayoutForRecord(int64_t id) {
   std::string Json;
   llvm::raw_string_ostream OS(Json);
 
-  std::function<void(const cxxlayout::FieldInfo &, llvm::raw_ostream &,
-                     unsigned)>
-      writeField = [&](const cxxlayout::FieldInfo &F, llvm::raw_ostream &Out,
-                       unsigned Depth) {
+  std::function<void(const cxxlayout::FieldInfo &, llvm::raw_ostream &)>
+      writeField = [&](const cxxlayout::FieldInfo &F,
+                       llvm::raw_ostream &Out) {
         Out << '{';
         Out << "\"fieldType\":\"" << fieldTypeToString(F.fieldType) << "\"";
         if (!F.name.empty()) {
@@ -345,7 +353,10 @@ const char *EMSCRIPTEN_KEEPALIVE getLayoutForRecord(int64_t id) {
           Out << "\"bitWidth\":" << F.bitWidth;
         }
         if (F.fieldType == FieldType::Record ||
-            F.fieldType == FieldType::NVBase) {
+            F.fieldType == FieldType::NVBase ||
+            F.fieldType == FieldType::NVPrimaryBase ||
+            F.fieldType == FieldType::VBase ||
+            F.fieldType == FieldType::VPrimaryBase) {
           Out << ',';
           Out << "\"subFields\": [";
           bool first = true;
@@ -354,14 +365,14 @@ const char *EMSCRIPTEN_KEEPALIVE getLayoutForRecord(int64_t id) {
               continue;
             if (!first)
               Out << ',';
-            writeField(*SFptr, Out, Depth + 4);
+            writeField(*SFptr, Out);
             first = false;
           }
           Out << ']';
         }
         Out << '}';
       };
-  writeField(*Root, OS, 0);
+  writeField(*Root, OS);
   OS.flush();
   return dupJson(Json);
 }
