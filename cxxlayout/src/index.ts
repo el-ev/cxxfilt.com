@@ -1,5 +1,65 @@
 import CxxLayout, { CxxLayoutModule } from '../wasm/clang-cxx-layout.js';
 
+const CPP_KEYWORDS = new Set([
+    'alignas', 'alignof', 'and', 'asm', 'auto', 'bitand', 'bitor', 'break', 'case',
+    'catch', 'class', 'compl', 'concept', 'const', 'consteval', 'constexpr',
+    'constinit', 'const_cast', 'continue', 'co_await', 'co_return', 'co_yield',
+    'decltype', 'default', 'delete', 'do', 'dynamic_cast', 'else', 'enum',
+    'explicit', 'export', 'extern', 'false', 'final', 'for', 'friend', 'goto',
+    'if', 'inline', 'mutable', 'namespace', 'new', 'noexcept', 'not', 'nullptr',
+    'operator', 'or', 'override', 'private', 'protected', 'public', 'register',
+    'reinterpret_cast', 'requires', 'return', 'sizeof', 'static', 'static_assert',
+    'static_cast', 'struct', 'switch', 'template', 'this', 'thread_local',
+    'throw', 'true', 'try', 'typedef', 'typeid', 'typename', 'union', 'using',
+    'virtual', 'volatile', 'while', 'xor',
+]);
+
+const CPP_TYPES = new Set([
+    'bool', 'char', 'char8_t', 'char16_t', 'char32_t', 'double', 'float', 'int',
+    'long', 'short', 'signed', 'unsigned', 'void', 'wchar_t',
+    'size_t', 'ssize_t', 'ptrdiff_t', 'intptr_t', 'uintptr_t',
+    'int8_t', 'int16_t', 'int32_t', 'int64_t',
+    'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
+]);
+
+const HTML_ESCAPES: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+};
+function escapeHtml(s: string): string {
+    return s.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
+}
+
+const TOKEN_RE = /(\/\/[^\n]*)|(\/\*[\s\S]*?\*\/)|(^[ \t]*#[^\n]*)|("(?:\\.|[^"\\\n])*")|('(?:\\.|[^'\\\n])*')|(\b(?:0[xX][0-9a-fA-F']+|0[bB][01']+|\d[\d']*\.?\d*(?:[eE][+-]?\d+)?[uUlLfFdDzZ]*|\.\d[\d']*(?:[eE][+-]?\d+)?[fFlL]?)\b)|(\b[A-Za-z_]\w*\b)|([\s\S])/gm;
+
+function highlightCpp(source: string): string {
+    let out = '';
+    for (const m of source.matchAll(TOKEN_RE)) {
+        const [, lineComment, blockComment, pp, dstr, sstr, num, ident, other] = m;
+        if (lineComment !== undefined || blockComment !== undefined) {
+            out += `<span class="hl-comment">${escapeHtml(lineComment ?? blockComment)}</span>`;
+        } else if (pp !== undefined) {
+            out += `<span class="hl-pp">${escapeHtml(pp)}</span>`;
+        } else if (dstr !== undefined || sstr !== undefined) {
+            out += `<span class="hl-string">${escapeHtml(dstr ?? sstr)}</span>`;
+        } else if (num !== undefined) {
+            out += `<span class="hl-num">${escapeHtml(num)}</span>`;
+        } else if (ident !== undefined) {
+            if (CPP_KEYWORDS.has(ident)) {
+                out += `<span class="hl-keyword">${ident}</span>`;
+            } else if (CPP_TYPES.has(ident)) {
+                out += `<span class="hl-type">${ident}</span>`;
+            } else {
+                out += escapeHtml(ident);
+            }
+        } else {
+            out += escapeHtml(other ?? '');
+        }
+    }
+    // Trailing newline keeps the overlay's last line height matching the textarea's caret line.
+    if (source.endsWith('\n')) out += ' ';
+    return out;
+}
+
 interface RecordInfo {
     id: string;
     name: string;
@@ -33,6 +93,7 @@ class CxxLayoutVisualizer {
     private selectedRecordIds: Set<string> = new Set();
 
     private codeEditor: HTMLTextAreaElement;
+    private codeHighlight: HTMLElement;
     private analyzeBtn: HTMLButtonElement;
     private targetSelect: HTMLSelectElement;
     private targetCustomWrapper: HTMLElement;
@@ -52,6 +113,7 @@ class CxxLayoutVisualizer {
 
     constructor() {
         this.codeEditor = document.getElementById('codeEditor') as HTMLTextAreaElement;
+        this.codeHighlight = document.querySelector('#codeHighlight code') as HTMLElement;
         this.analyzeBtn = document.getElementById('analyzeBtn') as HTMLButtonElement;
         this.targetSelect = document.getElementById('targetSelect') as HTMLSelectElement;
         this.targetCustomWrapper = document.getElementById('customTargetWrapper') as HTMLElement;
@@ -70,6 +132,18 @@ class CxxLayoutVisualizer {
         this.initializeEventListeners();
         this.syncCustomTargetVisibility();
         this.updateWasmStatus('warning', 'Module not loaded');
+        this.renderHighlight();
+    }
+
+    private renderHighlight(): void {
+        this.codeHighlight.innerHTML = highlightCpp(this.codeEditor.value);
+    }
+
+    private syncHighlightScroll(): void {
+        const overlay = this.codeHighlight.parentElement;
+        if (!overlay) return;
+        overlay.scrollTop = this.codeEditor.scrollTop;
+        overlay.scrollLeft = this.codeEditor.scrollLeft;
     }
 
     private initializeEventListeners(): void {
@@ -79,6 +153,8 @@ class CxxLayoutVisualizer {
         this.clearInfoBtn.addEventListener('click', () => {
             this.hideInfo();
         });
+        this.codeEditor.addEventListener('input', () => this.renderHighlight());
+        this.codeEditor.addEventListener('scroll', () => this.syncHighlightScroll());
     }
 
     private static readonly TARGET_TRIPLE_RE = /^[A-Za-z0-9._-]+$/;

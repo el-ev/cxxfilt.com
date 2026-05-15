@@ -49,7 +49,8 @@
                     <small id="extraFlagsHint" class="field-hint">Space-separated, no quoting.</small>
                 </div>
                 <div class="editor-wrapper">
-                    <textarea id="codeEditor" spellcheck="false">
+                    <pre id="codeHighlight" class="code-highlight" aria-hidden="true"><code></code></pre>
+                    <textarea id="codeEditor" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off">
 struct A {
     char c;
     double d;
